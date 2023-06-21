@@ -234,7 +234,7 @@ void loop()
 	// -------------------------------------------- //
 
 	// -------------------------------------------- //
-	// if top button you will press, 🕺 RoboNapoli will DANCE 🕺
+	// if top button you will press, 🕺 RoboNapoliu  will make DANCE 🕺
 	if (topValue)
 		danceFunction();
 	// -------------------------------------------- //
