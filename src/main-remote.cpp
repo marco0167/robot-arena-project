@@ -42,12 +42,13 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 		success = "Delivery Fail :(";
 	}
 }
-// int prova = 0;
+int prova = 0;
 // Callback when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
 	memcpy(&recData, incomingData, sizeof(recData));
-	// prova = recData.packetArg4rtn;
+	prova = recData.packetArg3;
+	Serial.println(recData.packetArg3);
 }
 
 //---------------------------------------HARDWARE DEPENDANT Variables
@@ -95,6 +96,7 @@ void setup()
 
 	//---------------------------------------ESP NOW setup
 	WiFi.mode(WIFI_STA);
+	esp_wifi_set_channel(10, WIFI_SECOND_CHAN_NONE);
 	if (esp_now_init() != ESP_OK)
 	{
 		Serial.println("Error initializing ESP-NOW");
@@ -170,6 +172,7 @@ void	danceFunction()
 void loop()
 {
 	// read pots values
+	delay(3);
 	int strValue = analogRead(steerPot); // X sinistra 0  X Destra 1023
 	delay(3);
 	int accValue = analogRead(accPot); // Y Su 0  Y Giu 1023
@@ -193,7 +196,7 @@ void loop()
 
 	if (xPercent > -14 && xPercent < 6) // se il valore è compreso tra -14 e 6 lo porto a 0 questo perche il potenziometro non è perfettamente centrato
 		xPercent = 0;
-
+//sei uc coglione
 	// Serial.print("X: ");
 	// Serial.println(xPercent);
 
@@ -241,6 +244,11 @@ void loop()
 
 	// -------------------------------------------- //
 	esp_err_t result = -1;
+	// Serial.println(prova);
+	// Serial.print("Right:");
+	// Serial.println(rightMotorPercent);
+	// Serial.print("Left:");
+	// Serial.println(leftMotorPercent);
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	if (result == ESP_OK)
 	{

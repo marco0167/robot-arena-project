@@ -12,7 +12,7 @@ static const char *TAG = "MAIN";
 #define weapPot 7
 
 //------------ turn on generic serial printing
-// #define DEBUG_PRINTS
+#define DEBUG_PRINTS
 
 #define MOTOR_A_IN1 8
 #define MOTOR_A_IN2 18
@@ -43,7 +43,7 @@ typedef struct
 	int16_t packetArg3;
 } packet_t;
 packet_t recData;
-// packet_t sendData;
+packet_t sendData;
 
 
 bool failsafe = false;
@@ -59,20 +59,20 @@ int wpnPot = 0;
 
 
 // // Callback when data is sent
-// String success;
-// esp_now_peer_info_t peerInfo;
-// // Callback when data is sent
-// void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
-// {
-// 	if (status == 0)
-// 	{
-// 		success = "Delivery Success :)";
-// 	}
-// 	else
-// 	{
-// 		success = "Delivery Fail :(";
-// 	}
-// }
+String success;
+esp_now_peer_info_t peerInfo;
+// Callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+{
+	if (status == 0)
+	{
+		success = "Delivery Success :)";
+	}
+	else
+	{
+		success = "Delivery Fail :(";
+	}
+}
 
 // Callback when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
@@ -126,6 +126,7 @@ void setup()
 	delay(500);
 
 	WiFi.mode(WIFI_STA);
+	esp_wifi_set_channel(10, WIFI_SECOND_CHAN_NONE);
 	if (esp_wifi_set_mac(WIFI_IF_STA, &robotAddress[0]) != ESP_OK)
 	{
 		Serial.println("Error changing mac");
@@ -138,14 +139,15 @@ void setup()
 		return;
 	}
 	esp_now_register_recv_cb(OnDataRecv);
-	// esp_now_register_send_cb(OnDataSent);
+	esp_now_register_send_cb(OnDataSent);
 	Led.setBlinks(0);
 	Led.ledOn();
 }
 
 void loop()
 {
-	Serial.println("loop");
+	int	weaponAngle = analogRead(weapPot);
+	Serial.println(weaponAngle);
 	unsigned long current_time = millis();
 	if (current_time - lastPacketMillis > failsafeMaxMillis)
 	{
@@ -164,7 +166,6 @@ void loop()
 
 		// inizierei chiamando un setspeed secco, poi passandogli in rapida sequenza  i due valori estremi
 		// poi passandoglieli alternati (variabile if true ( var * -1 a ogni loop) ad esempio)7
-
 		// motor1.setSpeed(spdMtrR);
 		// motor2.setSpeed(spdMtrR);
 		// wpnPot = analogRead(weapPot);
@@ -178,10 +179,14 @@ void loop()
 		// }
 		motor1.setSpeed(spdMtrL);
 		motor2.setSpeed(spdMtrR);
-		motor3.setSpeed(spdWpn);
-		// sendData.packetArg3 = analogRead(weapPot);
-		// esp_err_t result = -1;
-		// result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
+		if (weaponAngle > 785 && spdWpn < 0)
+			motor3.setSpeed(0);
+		else if (weaponAngle < 70 && spdWpn > 0)
+			motor3.setSpeed(0);
+		else
+			motor3.setSpeed(spdWpn);
+		esp_err_t result = -1;
+		result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
 		// -------------------------------------------- //
 	}
 	delay(2);
