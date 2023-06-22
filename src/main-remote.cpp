@@ -241,7 +241,9 @@ void loop()
 	if (topValue)
 		danceFunction();
 	// -------------------------------------------- //
-
+	//Serial.print("ciao");
+	//Serial.write(27); //Print "esc"
+	//Serial.print("[2J");
 	// -------------------------------------------- //
 	esp_err_t result = -1;
 	// Serial.println(prova);
