@@ -150,7 +150,16 @@ void setup()
 
 void serialm_print()
 {
-	Serial.println(weaponAngle);
+//	Serial.println(weaponAngle);
+	Serial.write("\n\n\n\n\n\n\n\n\n\n\n");
+	if (failsafe)
+		Serial.write("failsafe: true");
+	else
+		Serial.write("failsafe: false ");
+	Serial.write("Error :");
+//	Serial.println(result);
+//	Serial.println(result);
+	//Serial.println(failsafe);
 }
 
 bool	fs_check() 
