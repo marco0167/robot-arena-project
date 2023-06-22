@@ -34,21 +34,25 @@ BatteryMonitor Battery = BatteryMonitor();
 
 LedUtility Led = LedUtility();
 
+//packet structure: both reading and sending populate a struct for the purpose
 typedef struct
 {
 	int16_t speedmotorLeft;
 	int16_t speedmotorRight;
-	int16_t packetArg1;
+	int16_t packetWeapon;
 	int16_t packetArg2;
 	int16_t packetArg3;
 } packet_t;
-packet_t recData;
+packet_t recData; // we declare two structs one for sending one for reading
 packet_t sendData;
 
 
 bool failsafe = false;
+unsigned long current_time = 0;
 unsigned long failsafeMaxMillis = 400;
 unsigned long lastPacketMillis = 0;
+esp_err_t result = 0;	//packet send error
+int	weaponAngle;
 
 int spdMtrL = 0;
 int spdMtrR = 0;
@@ -81,7 +85,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 	// Access the received data and perform actions
 	spdMtrL = recData.speedmotorLeft;
 	spdMtrR = recData.speedmotorRight;
-	spdWpn = recData.packetArg1;
+	spdWpn = recData.packetWeapon;
 	recArg2 = recData.packetArg2;
 	recArg3 = recData.packetArg3;
 	lastPacketMillis = millis();
@@ -144,51 +148,57 @@ void setup()
 	Led.ledOn();
 }
 
-void loop()
+void serialm_print()
 {
-	int	weaponAngle = analogRead(weapPot);
 	Serial.println(weaponAngle);
-	unsigned long current_time = millis();
+}
+
+bool	fs_check() 
+{
+//	failsafe = false;
 	if (current_time - lastPacketMillis > failsafeMaxMillis)
 	{
 		failsafe = true;
-	}
-	handle_blink();
-	if (failsafe)
-	{
 		motor1.setSpeed(0); // RESET A ZERO SE GUARDIA
 		motor2.setSpeed(0);
 		motor3.setSpeed(0);
 	}
-	else
-	{
-		// vvvv ----- YOUR AWESOME CODE HERE ----- vvvv //
+	handle_blink();
+	return(failsafe);
+}
 
-		// inizierei chiamando un setspeed secco, poi passandogli in rapida sequenza  i due valori estremi
-		// poi passandoglieli alternati (variabile if true ( var * -1 a ogni loop) ad esempio)7
-		// motor1.setSpeed(spdMtrR);
-		// motor2.setSpeed(spdMtrR);
-		// wpnPot = analogRead(weapPot);
-		// if (wpnPot > 3540)
-		// {
-		// 	motor2.setSpeed(200);
-		// }
-		// else
-		// {
-		// 	motor2.setSpeed(0);
-		// }
-		motor1.setSpeed(spdMtrL);
-		motor2.setSpeed(spdMtrR);
-		if (weaponAngle > 785 && spdWpn < 0)
-			motor3.setSpeed(0);
-		else if (weaponAngle < 70 && spdWpn > 0)
-			motor3.setSpeed(0);
-		else
-			motor3.setSpeed(spdWpn);
-		esp_err_t result = -1;
-		result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
-		// -------------------------------------------- //
-	}
+void	read_routine()
+{
+	weaponAngle = analogRead(weapPot);
+ 	current_time = millis();
+}
+
+void send_routine()
+{
+	result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
+}
+
+void	action_routine()
+{
+	if (fs_check() == false)
+		return;
+	motor1.setSpeed(spdMtrL);
+	motor2.setSpeed(spdMtrR);
+	if (weaponAngle > 785 && spdWpn < 0)
+		motor3.setSpeed(0);
+	else if (weaponAngle < 70 && spdWpn > 0)
+		motor3.setSpeed(0);
+	else
+		motor3.setSpeed(spdWpn);
+}
+
+void loop()
+{
+
+	read_routine();
+	action_routine();	
+	send_routine();
+	serialm_print();
 	delay(2);
 }
 #endif
