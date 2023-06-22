@@ -34,26 +34,33 @@ BatteryMonitor Battery = BatteryMonitor();
 
 LedUtility Led = LedUtility();
 
-//packet structure: both reading and sending populate a struct for the purpose
+// PID STRUCT //
+typedef struct
+{
+	int distance;
+	int	prev_pos;
+} t_struct;
+
 typedef struct
 {
 	int16_t speedmotorLeft;
 	int16_t speedmotorRight;
-	int16_t packetWeapon;
+	int16_t packetArg1;
 	int16_t packetArg2;
 	int16_t packetArg3;
 } packet_t;
-packet_t recData; // we declare two structs one for sending one for reading
+
+packet_t recData;
 packet_t sendData;
+t_struct	PID;
 
 
 bool failsafe = false;
-unsigned long current_time = 0;
 unsigned long failsafeMaxMillis = 400;
 unsigned long lastPacketMillis = 0;
-esp_err_t result = 0;	//packet send error
-int	weaponAngle;
 
+int weaponAngle;
+unsigned long current_time;
 int spdMtrL = 0;
 int spdMtrR = 0;
 int spdWpn = 0;
@@ -85,7 +92,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 	// Access the received data and perform actions
 	spdMtrL = recData.speedmotorLeft;
 	spdMtrR = recData.speedmotorRight;
-	spdWpn = recData.packetWeapon;
+	spdWpn = recData.packetArg1;
 	recArg2 = recData.packetArg2;
 	recArg3 = recData.packetArg3;
 	lastPacketMillis = millis();
@@ -146,68 +153,100 @@ void setup()
 	esp_now_register_send_cb(OnDataSent);
 	Led.setBlinks(0);
 	Led.ledOn();
+	// OUR SETUP
+	PID.distance = 0;
+	PID.prev_pos = analogRead(weapPot);
 }
 
-void serialm_print()
+bool	fs_check()
 {
-//	Serial.println(weaponAngle);
-	Serial.write("\n\n\n\n\n\n\n\n\n\n\n");
-	if (failsafe)
-		Serial.write("failsafe: true");
-	else
-		Serial.write("failsafe: false ");
-	Serial.write("Error :");
-//	Serial.println(result);
-//	Serial.println(result);
-	//Serial.println(failsafe);
-}
-
-bool	fs_check() 
-{
-//	failsafe = false;
+	// note: failsafe is init. globally to false, it is then again set to false inside onDataRecv callback
+	current_time = millis();
 	if (current_time - lastPacketMillis > failsafeMaxMillis)
 	{
 		failsafe = true;
+	}
+	handle_blink();
+	if (failsafe)
+	{
 		motor1.setSpeed(0); // RESET A ZERO SE GUARDIA
 		motor2.setSpeed(0);
 		motor3.setSpeed(0);
 	}
-	handle_blink();
-	return(failsafe);
+	return (failsafe);
 }
 
-void	read_routine()
+//////////////////// PID CONTROLL ////////////////////////////
+
+int	calibrate()
 {
-	weaponAngle = analogRead(weapPot);
- 	current_time = millis();
+//	Serial.print(weaponAngle);
+//	Serial.print(PID.prev_pos);
+	int	new_dist = abs(weaponAngle - PID.prev_pos);
+//	Serial.print(new_dist);
+	if (new_dist > PID.distance)
+		PID.distance = new_dist;
+
+	PID.prev_pos = weaponAngle;
+	return(0);
 }
 
-void send_routine()
+//////////////////////////////////////////////////////////////
+
+
+
+void	smon_print()
 {
-	result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
+	std::string	bufferino;
+	char	num[6];
+
+	bufferino.append("\n\n\n\n\n\n");
+	bufferino.append("| failsafe: ");
+	sprintf(num, "%d", failsafe);
+	bufferino.append(num);
+	bufferino.append(" |\n| ");
+	sprintf(num, "%d", spdMtrL);
+	bufferino.append(num);
+	bufferino.append(" | ");
+	sprintf(num, "%d", weaponAngle);
+	bufferino.append(num);
+	bufferino.append(" | ");
+	sprintf(num, "%d", spdMtrR);
+	bufferino.append(num);
+	bufferino.append(" |\n");
+	bufferino.append("| max rapporto: ");
+	sprintf(num, "%d", PID.distance);
+	bufferino.append(num);
+	bufferino.append(" |\n");
+	Serial.print(bufferino.c_str());
+//	Serial.print(PID.rapporto);
 }
 
-void	action_routine()
-{
-	if (fs_check() == false)
-		return;
-	motor1.setSpeed(spdMtrL);
-	motor2.setSpeed(spdMtrR);
-	if (weaponAngle > 785 && spdWpn < 0)
-		motor3.setSpeed(0);
-	else if (weaponAngle < 70 && spdWpn > 0)
-		motor3.setSpeed(0);
-	else
-		motor3.setSpeed(spdWpn);
-}
+//835 is target
+
+
 
 void loop()
 {
-
-	read_routine();
-	action_routine();	
-	send_routine();
-	serialm_print();
+//	Serial.println(weaponAngle);
+	weaponAngle = analogRead(weapPot);
+	//calibrate();
+	if (fs_check() == false)
+	{
+		// vvvv ----- YOUR AWESOME CODE HERE ----- vvvv //
+		motor1.setSpeed(spdMtrL);
+		motor2.setSpeed(spdMtrR);
+		if (weaponAngle > 785 && spdWpn < 0)
+			motor3.setSpeed(0);
+		else if (weaponAngle < 70 && spdWpn > 0)
+			motor3.setSpeed(0);
+		else
+			motor3.setSpeed(spdWpn);
+		esp_err_t result = -1;
+		result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
+		// -------------------------------------------- //
+	}
+	smon_print();
 	delay(2);
 }
 #endif
