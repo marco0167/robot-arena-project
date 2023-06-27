@@ -38,12 +38,10 @@ typedef struct
 {
 	int16_t speedmotorLeft;
 	int16_t speedmotorRight;
-	int16_t packetArg1;
-	int16_t packetArg2;
-	int16_t packetArg3;
+	int16_t speedmotorWeapon;
 } packet_t;
 packet_t recData;
-packet_t sendData;
+// packet_t sendData;
 
 
 bool failsafe = false;
@@ -53,26 +51,24 @@ unsigned long lastPacketMillis = 0;
 int spdMtrL = 0;
 int spdMtrR = 0;
 int spdWpn = 0;
-int recArg2 = 0;
-int recArg3 = 0;
 int wpnPot = 0;
 
 
 // // Callback when data is sent
-String success;
-esp_now_peer_info_t peerInfo;
-// Callback when data is sent
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
-{
-	if (status == 0)
-	{
-		success = "Delivery Success :)";
-	}
-	else
-	{
-		success = "Delivery Fail :(";
-	}
-}
+// String success;
+// esp_now_peer_info_t peerInfo;
+// // Callback when data is sent
+// void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+// {
+// 	if (status == 0)
+// 	{
+// 		success = "Delivery Success :)";
+// 	}
+// 	else
+// 	{
+// 		success = "Delivery Fail :(";
+// 	}
+// }
 
 // Callback when data is received
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
@@ -81,9 +77,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 	// Access the received data and perform actions
 	spdMtrL = recData.speedmotorLeft;
 	spdMtrR = recData.speedmotorRight;
-	spdWpn = recData.packetArg1;
-	recArg2 = recData.packetArg2;
-	recArg3 = recData.packetArg3;
+	spdWpn = recData.speedmotorWeapon;
 	lastPacketMillis = millis();
 	failsafe = false;
 }
@@ -139,15 +133,13 @@ void setup()
 		return;
 	}
 	esp_now_register_recv_cb(OnDataRecv);
-	esp_now_register_send_cb(OnDataSent);
+	// esp_now_register_send_cb(OnDataSent);
 	Led.setBlinks(0);
 	Led.ledOn();
 }
 
 void loop()
 {
-	// Serial.println(weaponAngle);
-	Serial.println(Battery.getVoltage());
 	int	weaponAngle = 0;
 	unsigned long current_time = millis();
 	if (current_time - lastPacketMillis > failsafeMaxMillis)
@@ -166,12 +158,8 @@ void loop()
 		// vvvv ----- YOUR AWESOME CODE HERE ----- vvvv //
 
 		weaponAngle = analogRead(weapPot);
-		// inizierei chiamando un setspeed secco, poi passandogli in rapida sequenza  i due valori estremi
-		// poi passandoglieli alternati (variabile if true ( var * -1 a ogni loop) ad esempio)7
-
 		motor1.setSpeed(spdMtrL);
 		motor2.setSpeed(spdMtrR);
-
 
 		// rallentare larma
 		if (weaponAngle > 750 && spdWpn < 0)
@@ -196,8 +184,6 @@ void loop()
 		else
 			motor3.setSpeed(spdWpn);
 		Serial.println(weaponAngle);
-		esp_err_t result = -1;
-		result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
 		// -------------------------------------------- //
 	}
 	delay(2);

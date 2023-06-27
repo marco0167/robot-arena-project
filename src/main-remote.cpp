@@ -18,8 +18,7 @@ typedef struct
 {
 	int16_t speedmotorLeft;
 	int16_t speedmotorRight;
-	int16_t packetArg1;
-	int16_t packetArg2;
+	int16_t speedmotorWeapon;
 	int16_t packetArg3;
 } packet_t;
 
@@ -41,14 +40,6 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 	{
 		success = "Delivery Fail :(";
 	}
-}
-int prova = 0;
-// Callback when data is received
-void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
-{
-	memcpy(&recData, incomingData, sizeof(recData));
-	prova = recData.packetArg3;
-	Serial.println(recData.packetArg3);
 }
 
 //---------------------------------------HARDWARE DEPENDANT Variables
@@ -123,7 +114,6 @@ void setup()
 			 peerInfo.peer_addr[0], peerInfo.peer_addr[1], peerInfo.peer_addr[2], peerInfo.peer_addr[3], peerInfo.peer_addr[4], peerInfo.peer_addr[5]);
 	Serial.print("sending to: ");
 	Serial.println(macStr);
-	esp_now_register_recv_cb(OnDataRecv);
 	Led.setBlinks(0);
 	Led.ledOn();
 }
@@ -135,37 +125,33 @@ void	danceFunction()
 	// mezzo giro a sinistra
 	sentData.speedmotorLeft = map(100, -100, 100, -512, 512);
 	sentData.speedmotorRight = map(-100, -100, 100, -512, 512);
-	sentData.packetArg1 = 512;
+	sentData.speedmotorWeapon = 512;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
-
-	// delay(100);
-	// sentData.packetArg1 = -512;
-	// result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	delay(200);
 
 	// mezzo giro a sinistra (essendo speedmotorLeft & speedmotorRight gia assegnati, non serve riassegnarli)
-	sentData.packetArg1 = -512;
+	sentData.speedmotorWeapon = -512;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	delay(200);
 
-	sentData.packetArg1 = 512;
+	sentData.speedmotorWeapon = 512;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	delay(200);
 
-	sentData.packetArg1 = -512;
+	sentData.speedmotorWeapon = -512;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	delay(200);
 
 	// mezzo giro a destra
 	sentData.speedmotorLeft = map(-100, -100, 100, -512, 512);
 	sentData.speedmotorRight = map(100, -100, 100, -512, 512);
-	sentData.packetArg1 = 0;
+	sentData.speedmotorWeapon = 0;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	delay(400);
 
 	sentData.speedmotorLeft = 0;
 	sentData.speedmotorRight = 0;
-	sentData.packetArg1 = 0;
+	sentData.speedmotorWeapon = 0;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 }
 
@@ -196,21 +182,12 @@ void loop()
 
 	if (xPercent > -14 && xPercent < 6) // se il valore è compreso tra -14 e 6 lo porto a 0 questo perche il potenziometro non è perfettamente centrato
 		xPercent = 0;
-//sei uc coglione
-	// Serial.print("X: ");
-	// Serial.println(xPercent);
 
 	if (yPercent > -12 && yPercent < 16) // se il valore è compreso tra -12 e 16 lo porto a 0 questo perche il potenziometro non è perfettamente centrato
 		yPercent = 0;
 
-	// Serial.print("Y: ");
-	// Serial.println(yPercent);
-
 	rightMotorPercent = (yPercent + xPercent) ; // calcolo la percentuale del motore destro
 	leftMotorPercent = (yPercent - xPercent) ;  // calcolo la percentuale del motore sinistro
-
-	// Serial.print("Right: ");
-	// Serial.println(rightMotorPercent);
 
 	if (rightMotorPercent > 100) // se il valore è maggiore di 100 lo porto a 100
 		rightMotorPercent = 100;
@@ -222,18 +199,17 @@ void loop()
 	else if (leftMotorPercent < -100) // se il valore è minore di -100 lo porto a -100
 		leftMotorPercent = -100;
 
-	// Example: Set speed values based on potentiometer readings
 	sentData.speedmotorLeft = map(leftMotorPercent, -100, 100, -512, 512);
 	sentData.speedmotorRight = map(rightMotorPercent, -100, 100, -512, 512);
 
 	// -------------------------------------------- //
 	// set weapon movement based on buttons pressed
 	if (rightValue)
-		sentData.packetArg1 = 512; // move weapon up
+		sentData.speedmotorWeapon = 512; // move weapon up
 	else if (leftValue)
-		sentData.packetArg1 = -512; // move weapon down
+		sentData.speedmotorWeapon = -512; // move weapon down
 	else
-		sentData.packetArg1 = 0; // stop weapon
+		sentData.speedmotorWeapon = 0; // stop weapon
 	// -------------------------------------------- //
 
 	// -------------------------------------------- //
@@ -244,11 +220,6 @@ void loop()
 
 	// -------------------------------------------- //
 	esp_err_t result = -1;
-	// Serial.println(prova);
-	// Serial.print("Right:");
-	// Serial.println(rightMotorPercent);
-	// Serial.print("Left:");
-	// Serial.println(leftMotorPercent);
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	if (result == ESP_OK)
 	{
