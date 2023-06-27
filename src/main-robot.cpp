@@ -146,8 +146,9 @@ void setup()
 
 void loop()
 {
-	int	weaponAngle = analogRead(weapPot);
-	Serial.println(weaponAngle);
+	// Serial.println(weaponAngle);
+	Serial.println(Battery.getVoltage());
+	int	weaponAngle = 0;
 	unsigned long current_time = millis();
 	if (current_time - lastPacketMillis > failsafeMaxMillis)
 	{
@@ -164,27 +165,37 @@ void loop()
 	{
 		// vvvv ----- YOUR AWESOME CODE HERE ----- vvvv //
 
+		weaponAngle = analogRead(weapPot);
 		// inizierei chiamando un setspeed secco, poi passandogli in rapida sequenza  i due valori estremi
 		// poi passandoglieli alternati (variabile if true ( var * -1 a ogni loop) ad esempio)7
-		// motor1.setSpeed(spdMtrR);
-		// motor2.setSpeed(spdMtrR);
-		// wpnPot = analogRead(weapPot);
-		// if (wpnPot > 3540)
-		// {
-		// 	motor2.setSpeed(200);
-		// }
-		// else
-		// {
-		// 	motor2.setSpeed(0);
-		// }
+
 		motor1.setSpeed(spdMtrL);
 		motor2.setSpeed(spdMtrR);
-		if (weaponAngle > 785 && spdWpn < 0)
+
+
+		// rallentare larma
+		if (weaponAngle > 750 && spdWpn < 0)
+		{
 			motor3.setSpeed(0);
+			Serial.println(spdWpn);
+		}
+		else if (weaponAngle > 700 && spdWpn < 0)
+		{
+			motor3.setSpeed(spdWpn + 250);
+			Serial.println(spdWpn);
+		}
+		else if (weaponAngle > 650 && spdWpn < 0)
+		{
+			motor3.setSpeed(spdWpn + 100);
+			Serial.println(spdWpn);
+		}
 		else if (weaponAngle < 70 && spdWpn > 0)
 			motor3.setSpeed(0);
+		else if (weaponAngle < 815 && spdWpn == 0)
+			motor3.setSpeed(-210);
 		else
 			motor3.setSpeed(spdWpn);
+		Serial.println(weaponAngle);
 		esp_err_t result = -1;
 		result = esp_now_send(&robotAddress[0], (uint8_t *)&sendData, sizeof(sendData));
 		// -------------------------------------------- //
