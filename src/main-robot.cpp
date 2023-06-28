@@ -39,10 +39,10 @@ typedef struct
 	int16_t speedmotorLeft;
 	int16_t speedmotorRight;
 	int16_t speedmotorWeapon;
+	int16_t isTopBtn;
 } packet_t;
 packet_t recData;
 // packet_t sendData;
-
 
 bool failsafe = false;
 unsigned long failsafeMaxMillis = 400;
@@ -52,7 +52,7 @@ int spdMtrL = 0;
 int spdMtrR = 0;
 int spdWpn = 0;
 int wpnPot = 0;
-
+int topBtn  = 0;
 
 // // Callback when data is sent
 // String success;
@@ -78,6 +78,7 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 	spdMtrL = recData.speedmotorLeft;
 	spdMtrR = recData.speedmotorRight;
 	spdWpn = recData.speedmotorWeapon;
+	topBtn = recData.isTopBtn;
 	lastPacketMillis = millis();
 	failsafe = false;
 }
@@ -140,7 +141,7 @@ void setup()
 
 void loop()
 {
-	int	weaponAngle = 0;
+	int weaponAngle = 0;
 	unsigned long current_time = millis();
 	if (current_time - lastPacketMillis > failsafeMaxMillis)
 	{
@@ -160,30 +161,37 @@ void loop()
 		weaponAngle = analogRead(weapPot);
 		motor1.setSpeed(spdMtrL);
 		motor2.setSpeed(spdMtrR);
-
-		// rallentare larma
-		if (weaponAngle > 750 && spdWpn < 0)
+		Serial.println(topBtn);
+		if (topBtn)
 		{
-			motor3.setSpeed(0);
-			Serial.println(spdWpn);
+			motor3.setSpeed(512);
 		}
-		else if (weaponAngle > 700 && spdWpn < 0)
-		{
-			motor3.setSpeed(spdWpn + 250);
-			Serial.println(spdWpn);
-		}
-		else if (weaponAngle > 650 && spdWpn < 0)
-		{
-			motor3.setSpeed(spdWpn + 100);
-			Serial.println(spdWpn);
-		}
-		else if (weaponAngle < 70 && spdWpn > 0)
-			motor3.setSpeed(0);
-		else if (weaponAngle < 815 && spdWpn == 0)
-			motor3.setSpeed(-210);
 		else
-			motor3.setSpeed(spdWpn);
-		Serial.println(weaponAngle);
+		{
+			// rallentare larma
+			if (weaponAngle > 750 && spdWpn < 0)
+			{
+				motor3.setSpeed(0);
+				Serial.println(spdWpn);
+			}
+			else if (weaponAngle > 700 && spdWpn < 0)
+			{
+				motor3.setSpeed(spdWpn + 250);
+				Serial.println(spdWpn);
+			}
+			else if (weaponAngle > 650 && spdWpn < 0)
+			{
+				motor3.setSpeed(spdWpn + 100);
+				Serial.println(spdWpn);
+			}
+			else if (weaponAngle < 70 && spdWpn > 0)
+				motor3.setSpeed(0);
+			else if (weaponAngle < 815 && spdWpn == 0)
+				motor3.setSpeed(-210);
+			else
+				motor3.setSpeed(spdWpn);
+		}
+		// Serial.println(weaponAngle);
 		// -------------------------------------------- //
 	}
 	delay(2);

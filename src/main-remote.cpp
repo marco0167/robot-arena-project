@@ -20,6 +20,7 @@ typedef struct
 	int16_t speedmotorRight;
 	int16_t speedmotorWeapon;
 	int16_t packetArg3;
+	int16_t isTopBtn;
 } packet_t;
 
 packet_t sentData;
@@ -210,15 +211,20 @@ void loop()
 		sentData.speedmotorWeapon = -512; // move weapon down
 	else
 		sentData.speedmotorWeapon = 0; // stop weapon
+
+	if (topValue) sentData.isTopBtn = 1;
+	else sentData.isTopBtn = 0;
 	// -------------------------------------------- //
 
 	// -------------------------------------------- //
 	// if top button you will press, 🕺 RoboNapoliu  will make DANCE 🕺
-	if (topValue)
-		danceFunction();
+	// if (topValue)
+	// 	danceFunction();
 	// -------------------------------------------- //
 
 	// -------------------------------------------- //
+	Serial.print(topValue);
+	Serial.println(sentData.isTopBtn);
 	esp_err_t result = -1;
 	result = esp_now_send(robotAddress, (uint8_t *)&sentData, sizeof(sentData));
 	if (result == ESP_OK)
