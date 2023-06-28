@@ -39,7 +39,8 @@ typedef struct
 	int16_t speedmotorLeft;
 	int16_t speedmotorRight;
 	int16_t speedmotorWeapon;
-	int16_t isTopBtn;
+	int16_t packetArg3;
+	int16_t isTopBtn1;
 } packet_t;
 packet_t recData;
 // packet_t sendData;
@@ -53,6 +54,7 @@ int spdMtrR = 0;
 int spdWpn = 0;
 int wpnPot = 0;
 int topBtn  = 0;
+int aaaa = 0;
 
 // // Callback when data is sent
 // String success;
@@ -78,7 +80,8 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 	spdMtrL = recData.speedmotorLeft;
 	spdMtrR = recData.speedmotorRight;
 	spdWpn = recData.speedmotorWeapon;
-	topBtn = recData.isTopBtn;
+	topBtn = recData.packetArg3;
+	Serial.println(recData.packetArg3);
 	lastPacketMillis = millis();
 	failsafe = false;
 }
@@ -161,10 +164,10 @@ void loop()
 		weaponAngle = analogRead(weapPot);
 		motor1.setSpeed(spdMtrL);
 		motor2.setSpeed(spdMtrR);
-		Serial.println(topBtn);
+		// Serial.println(topBtn);
 		if (topBtn)
 		{
-			motor3.setSpeed(512);
+			motor3.setSpeed(-512);
 		}
 		else
 		{
@@ -186,8 +189,10 @@ void loop()
 			}
 			else if (weaponAngle < 70 && spdWpn > 0)
 				motor3.setSpeed(0);
-			else if (weaponAngle < 815 && spdWpn == 0)
+			else if (weaponAngle < 810 && spdWpn == 0)
 				motor3.setSpeed(-210);
+			else if ((weaponAngle < 1023 && weaponAngle > 860) && spdWpn == 0)
+				motor3.setSpeed(220);
 			else
 				motor3.setSpeed(spdWpn);
 		}
